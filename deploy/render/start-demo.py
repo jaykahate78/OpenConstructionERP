@@ -16,6 +16,7 @@ query = dict(parse_qsl(raw.query))
 query.pop("channel_binding", None)
 query.pop("sslmode", None)
 query.pop("ssl", None)
+os.environ["PGSSLROOTCERT"] = "/etc/ssl/certs/ca-certificates.crt"
 async_query = {**query, "ssl": "verify-full"}
 sync_query = {**query, "sslmode": "verify-full"}
 os.environ["DATABASE_URL"] = urlunsplit(("postgresql+asyncpg", raw.netloc, raw.path, urlencode(async_query), ""))
