@@ -75,6 +75,8 @@ async function openDemo(){
 document.getElementById('retry').addEventListener('click',openDemo);openDemo();
 </script></body></html>"""
 
+DEMO_UI_STYLE = "<style id=\"apana-demo-ui\">\naside[data-tour=\"sidebar\"] a[href=\"https://github.com/datadrivenconstruction/OpenConstructionERP\"],\naside[data-tour=\"sidebar\"] a[href=\"https://t.me/datadrivenconstruction\"],\n[data-testid=\"sidebar-learn\"],\n[data-testid=\"header-learn-restore\"],\naside[data-tour=\"sidebar\"] a[href=\"/modules/developer-guide\"],\naside[data-tour=\"sidebar\"] button[aria-haspopup=\"dialog\"][class*=\"border-dashed\"],\nbutton[aria-label=\"Support us\"],\nheader a[href^=\"mailto:info@datadrivenconstruction\"],\nheader a[href^=\"mailto:info@openconstructionerp\"] {display:none!important}\n</style>"
+
 class AdminDemoEntry:
     def __init__(self, app):
         self.app = app
@@ -89,6 +91,21 @@ class AdminDemoEntry:
             })
             await response(scope, receive, send)
             return
+        # Serve the same SPA with demo-only presentation rules, without
+        # rebuilding or changing any upstream JavaScript or source notices.
+        if (scope["type"] == "http" and scope.get("method") == "GET"
+                and not scope.get("path", "").startswith(("/api", "/assets", "/demo/"))
+                and b"text/html" in dict(scope.get("headers", [])).get(b"accept", b"")):
+            from app.cli_static import get_frontend_dir
+            from starlette.responses import HTMLResponse
+            directory = get_frontend_dir()
+            if directory is not None:
+                index = directory / "index.html"
+                if index.is_file():
+                    html = index.read_text(encoding="utf-8")
+                    html = html.replace("</head>", DEMO_UI_STYLE + "</head>", 1)
+                    await HTMLResponse(html, headers={"Cache-Control": "no-store"})(scope, receive, send)
+                    return
         await self.app(scope, receive, send)
 
 
