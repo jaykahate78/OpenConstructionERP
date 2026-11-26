@@ -3,7 +3,7 @@ services:
     name: apana-construction-demo
     runtime: docker
     region: oregon
-    plan: free
+    plan: 1c-2g
     repo: https://github.com/jaykahate78/OpenConstructionERP
     branch: deploy/render-demo
     dockerfilePath: deploy/render/Dockerfile.demo
