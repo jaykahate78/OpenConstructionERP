@@ -1,5 +1,7 @@
 # Pin the official 18.9.0 image matching this fork's application version.
 FROM ghcr.io/datadrivenconstruction/openconstructionerp@sha256:17f4278c518352919ce0e6d4651c57a90a35e5920bdf561cd2ded73a8a3126d1
+# Let periodic malloc_trim release Python allocations as well as native buffers.
+ENV PYTHONMALLOC=malloc MALLOC_ARENA_MAX=2 MALLOC_TRIM_THRESHOLD_=131072
 COPY deploy/render/start-demo.py /app/render-start-demo.py
 COPY deploy/render/free-demo-profile.py /app/backend/free_demo_profile.py
 CMD ["python", "/app/render-start-demo.py"]
