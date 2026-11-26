@@ -11,13 +11,10 @@ from app import main as upstream
 
 SELECTED = {
     "oe_users", "oe_projects", "oe_contacts", "oe_boq", "oe_costs",
-    "oe_catalog", "oe_procurement", "oe_supplier_catalogs", "oe_rfq_bidding",
-    "oe_site_inventory", "oe_daily_diary", "oe_fieldreports", "oe_progress",
-    "oe_schedule", "oe_tasks", "oe_finance", "oe_resources", "oe_equipment",
-    "oe_dashboard", "oe_notifications", "oe_inspections", "oe_safety",
-    "oe_documents", "oe_subcontractors", "oe_tendering", "oe_i18n_foundation",
-    "oe_teams", "oe_approval_routes",
+    "oe_catalog", "oe_procurement", "oe_site_inventory", "oe_daily_diary",
+    "oe_fieldreports", "oe_progress", "oe_finance", "oe_dashboard",
 }
+
 original_discover = ModuleLoader.discover
 
 def focused_discover(self, *args, **kwargs):
