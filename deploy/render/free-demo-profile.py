@@ -2,6 +2,10 @@
 The original application and every module remain in the upstream image.
 """
 import logging
+import asyncio
+import contextlib
+import ctypes
+import gc
 from app.core.module_loader import ModuleLoader
 from app import main as upstream
 
@@ -52,4 +56,37 @@ def create_app():
     # Periodic enterprise tasks and vector warm-ups are unnecessary for this demo.
     # Manual procurement/site operations continue through their normal API routes.
     process_registry.schedule_boot = lambda: None
-    return upstream.create_app()
+    app = upstream.create_app()
+    original_lifespan = app.router.lifespan_context
+    libc = ctypes.CDLL(None)
+    trim = getattr(libc, "malloc_trim", None)
+    if trim is not None:
+        trim.argtypes = [ctypes.c_size_t]
+        trim.restype = ctypes.c_int
+
+    def release_temporary_memory():
+        # Schema inspection and route construction leave large temporary graphs.
+        # Collect cycles, then return unused glibc arenas to the container.
+        gc.collect()
+        if trim is not None:
+            trim(0)
+
+    async def memory_maintenance():
+        while True:
+            await asyncio.sleep(30)
+            release_temporary_memory()
+
+    @contextlib.asynccontextmanager
+    async def lifespan(application):
+        async with original_lifespan(application) as state:
+            release_temporary_memory()
+            task = asyncio.create_task(memory_maintenance())
+            try:
+                yield state
+            finally:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+
+    app.router.lifespan_context = lifespan
+    return app
