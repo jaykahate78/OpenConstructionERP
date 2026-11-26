@@ -21,4 +21,11 @@ async_query = {**query, "ssl": "verify-full"}
 sync_query = {**query, "sslmode": "verify-full"}
 os.environ["DATABASE_URL"] = urlunsplit(("postgresql+asyncpg", raw.netloc, raw.path, urlencode(async_query), ""))
 os.environ["DATABASE_SYNC_URL"] = urlunsplit(("postgresql", raw.netloc, raw.path, urlencode(sync_query), ""))
-os.execv("/app/entrypoint.sh", ["/app/entrypoint.sh"])
+os.environ["OE_SEMANTIC_SEARCH"] = "false"
+os.environ["EMAIL_BACKEND"] = "console"
+import sys
+os.execv(sys.executable, [
+    sys.executable, "-m", "uvicorn", "free_demo_profile:create_app", "--factory",
+    "--host", "0.0.0.0", "--port", os.environ.get("PORT", "8080"),
+    "--timeout-keep-alive", "75", "--app-dir", "/app/backend",
+])
