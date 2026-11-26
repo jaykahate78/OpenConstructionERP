@@ -48,12 +48,57 @@ async def seed_accounts_only(*, defer_projects=False):
 
 upstream._seed_demo_account = seed_accounts_only
 
+
+# This entry uses the existing public demo sign-in; it grants no new role.
+ADMIN_DEMO_HTML = r"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Apana Construction Demo</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1220;color:#e5edf8;font:16px system-ui}main{padding:32px;text-align:center}button{padding:12px 20px;border:0;border-radius:10px;background:#347ef2;color:white;cursor:pointer}</style></head>
+<body><main><h1>Construction ERP Demo</h1><p id="status" role="status">Opening Admin demo…</p><button id="retry" hidden>Try again</button></main>
+<script>
+async function openDemo(){
+ const status=document.getElementById('status'),retry=document.getElementById('retry');
+ retry.hidden=true;status.textContent='Opening Admin demo…';
+ try{
+  const response=await fetch('/api/v1/users/auth/demo-login/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'demo@openconstructionerp.com'})});
+  if(!response.ok)throw new Error('Demo is temporarily unavailable. Please try again.');
+  const data=await response.json();
+  if(!data.access_token||!data.refresh_token)throw new Error('Demo sign-in could not complete.');
+  for(const key of ['oe_access_token','oe_refresh_token','oe_remember_me','oe_user_full_name'])localStorage.removeItem(key);
+  sessionStorage.setItem('oe_access_token',data.access_token);
+  sessionStorage.setItem('oe_refresh_token',data.refresh_token);
+  sessionStorage.removeItem('oe_manual_login');
+  localStorage.setItem('oe_user_email','demo@openconstructionerp.com');
+  localStorage.setItem('oe_session_hint','1');
+  location.replace('/projects');
+ }catch(error){status.textContent=error.message||'Unable to open demo.';retry.hidden=false;}
+}
+document.getElementById('retry').addEventListener('click',openDemo);openDemo();
+</script></body></html>"""
+
+class AdminDemoEntry:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path") in {"/demo/admin", "/demo/admin/"}:
+            from starlette.responses import HTMLResponse
+            response = HTMLResponse(ADMIN_DEMO_HTML, headers={
+                "Cache-Control": "no-store",
+                "X-Robots-Tag": "noindex, nofollow",
+                "Referrer-Policy": "no-referrer",
+            })
+            await response(scope, receive, send)
+            return
+        await self.app(scope, receive, send)
+
+
 def create_app():
     from app.core.processes import process_registry
     # Periodic enterprise tasks and vector warm-ups are unnecessary for this demo.
     # Manual procurement/site operations continue through their normal API routes.
     process_registry.schedule_boot = lambda: None
     app = upstream.create_app()
+    app.add_middleware(AdminDemoEntry)
     original_lifespan = app.router.lifespan_context
     libc = ctypes.CDLL(None)
     trim = getattr(libc, "malloc_trim", None)
