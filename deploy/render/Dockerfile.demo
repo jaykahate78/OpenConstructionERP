@@ -1,4 +1,5 @@
 # Pin the official 18.9.0 image matching this fork's application version.
 FROM ghcr.io/datadrivenconstruction/openconstructionerp@sha256:17f4278c518352919ce0e6d4651c57a90a35e5920bdf561cd2ded73a8a3126d1
 COPY deploy/render/start-demo.py /app/render-start-demo.py
+COPY deploy/render/free-demo-profile.py /app/backend/free_demo_profile.py
 CMD ["python", "/app/render-start-demo.py"]
