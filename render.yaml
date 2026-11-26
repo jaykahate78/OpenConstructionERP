@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: apana-construction-demo
+    runtime: docker
+    region: oregon
+    plan: free
+    repo: https://github.com/jaykahate78/OpenConstructionERP
+    branch: deploy/render-demo
+    dockerfilePath: deploy/render/Dockerfile.demo
+    dockerContext: .
+    autoDeployTrigger: off
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: SERVE_FRONTEND
+        value: "true"
+      - key: VECTOR_BACKEND
+        value: lancedb
+      - key: DATABASE_POOL_SIZE
+        value: "5"
+      - key: DATABASE_MAX_OVERFLOW
+        value: "2"
+      - key: REGISTRATION_MODE
+        value: closed
+      - key: SEED_DEMO
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEMO_USER_PASSWORD
+        generateValue: true
+      - key: DEMO_ESTIMATOR_PASSWORD
+        generateValue: true
+      - key: DEMO_MANAGER_PASSWORD
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: apana-construction-demo-db
+          property: connectionString
+databases:
+  - name: apana-construction-demo-db
+    region: oregon
+    plan: free
+    postgresMajorVersion: "16"
+    databaseName: construction_demo
+    user: construction_demo
+    ipAllowList: []
