@@ -77,11 +77,22 @@ document.getElementById('retry').addEventListener('click',openDemo);openDemo();
 
 DEMO_UI_STYLE = "<style id=\"apana-demo-ui\">\naside[data-tour=\"sidebar\"] a[href=\"https://github.com/datadrivenconstruction/OpenConstructionERP\"],\naside[data-tour=\"sidebar\"] a[href=\"https://t.me/datadrivenconstruction\"],\n[data-testid=\"sidebar-learn\"],\n[data-testid=\"header-learn-restore\"],\naside[data-tour=\"sidebar\"] a[href=\"/modules/developer-guide\"],\naside[data-tour=\"sidebar\"] button[aria-haspopup=\"dialog\"][class*=\"border-dashed\"],\nbutton[aria-label=\"Support us\"],\nheader a[href^=\"mailto:info@datadrivenconstruction\"],\nheader a[href^=\"mailto:info@openconstructionerp\"] {display:none!important}\n</style>"
 
+DEMO_SERVICE_WORKER = "// Apana demo navigation: always obtain the current UI from the server.\nself.addEventListener('install',event=>{event.waitUntil(self.skipWaiting());});\nself.addEventListener('activate',event=>{event.waitUntil(self.clients.claim());});\nself.addEventListener('fetch',event=>{\n if(event.request.mode==='navigate'){\n  event.respondWith(fetch(event.request,{cache:'no-store'}));\n }\n});\n"
+DEMO_WORKER_REGISTRATION = "if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'}).then(registration=>registration.update()).catch(()=>{});});}"
+
 class AdminDemoEntry:
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path") in {"/sw.js", "/registerSW.js"}:
+            from starlette.responses import Response
+            script = DEMO_SERVICE_WORKER if scope["path"] == "/sw.js" else DEMO_WORKER_REGISTRATION
+            await Response(script, media_type="application/javascript", headers={
+                "Cache-Control": "no-store, max-age=0",
+                "Service-Worker-Allowed": "/",
+            })(scope, receive, send)
+            return
         if scope["type"] == "http" and scope.get("path") in {"/demo/admin", "/demo/admin/"}:
             from starlette.responses import HTMLResponse
             response = HTMLResponse(ADMIN_DEMO_HTML, headers={
